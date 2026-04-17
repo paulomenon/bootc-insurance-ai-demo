@@ -83,7 +83,7 @@ def detect_intent(text: str) -> dict:
     max_possible = len(INTENT_PATTERNS[best_intent])
     confidence = min(0.95, 0.5 + (scores[best_intent] / max_possible) * 0.45)
 
-    routing = "orchestrator"
+    routing = "agentic_ai"
     if best_intent == "greeting":
         routing = "direct_response"
     elif best_intent == "coverage_inquiry":

@@ -253,13 +253,13 @@ spec:
 apiVersion: image.openshift.io/v1
 kind: ImageStream
 metadata:
-  name: orchestrator
+  name: agentic-ai
   namespace: bootc-insurance-ai
 ---
 apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
-  name: orchestrator
+  name: agentic-ai
   namespace: bootc-insurance-ai
 spec:
   source:
@@ -280,30 +280,30 @@ spec:
   output:
     to:
       kind: ImageStreamTag
-      name: orchestrator:latest
+      name: agentic-ai:latest
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: orchestrator
+  name: agentic-ai
   namespace: bootc-insurance-ai
   annotations:
     image.openshift.io/triggers: >-
-      [{"from":{"kind":"ImageStreamTag","name":"orchestrator:latest"},"fieldPath":"spec.template.spec.containers[0].image"}]
+      [{"from":{"kind":"ImageStreamTag","name":"agentic-ai:latest"},"fieldPath":"spec.template.spec.containers[0].image"}]
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: orchestrator
+      app: agentic-ai
   template:
     metadata:
       labels:
-        app: orchestrator
+        app: agentic-ai
         system: bootc-insurance-ai
     spec:
       containers:
-        - name: orchestrator
-          image: image-registry.openshift-image-registry.svc:5000/bootc-insurance-ai/orchestrator:latest
+        - name: agentic-ai
+          image: image-registry.openshift-image-registry.svc:5000/bootc-insurance-ai/agentic-ai:latest
           ports:
             - containerPort: 8002
           env:
@@ -325,11 +325,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: orchestrator
+  name: agentic-ai
   namespace: bootc-insurance-ai
 spec:
   selector:
-    app: orchestrator
+    app: agentic-ai
   ports:
     - port: 8002
       targetPort: 8002
@@ -337,12 +337,12 @@ spec:
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: orchestrator
+  name: agentic-ai
   namespace: bootc-insurance-ai
 spec:
   to:
     kind: Service
-    name: orchestrator
+    name: agentic-ai
   port:
     targetPort: 8002
   tls:
@@ -419,7 +419,7 @@ spec:
                   key: TELEGRAM_BOT_TOKEN
             - name: LLM_SERVICE_URL
               value: "http://dummy-llm:8001"
-            - name: ORCHESTRATOR_URL
-              value: "http://orchestrator:8002"
+            - name: AGENTIC_AI_URL
+              value: "http://agentic-ai:8002"
             - name: LOG_LEVEL
               value: "INFO"

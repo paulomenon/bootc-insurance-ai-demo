@@ -202,22 +202,22 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: orchestrator
+  name: agentic-ai
   namespace: bootc-insurance-ai
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: orchestrator
+      app: agentic-ai
   template:
     metadata:
       labels:
-        app: orchestrator
+        app: agentic-ai
         system: bootc-insurance-ai
     spec:
       containers:
-        - name: orchestrator
-          image: bootc-insurance-ai/orchestrator:latest
+        - name: agentic-ai
+          image: bootc-insurance-ai/agentic-ai:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8002
@@ -250,11 +250,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: orchestrator
+  name: agentic-ai
   namespace: bootc-insurance-ai
 spec:
   selector:
-    app: orchestrator
+    app: agentic-ai
   ports:
     - port: 8002
       targetPort: 8002
@@ -288,8 +288,8 @@ spec:
                   key: TELEGRAM_BOT_TOKEN
             - name: LLM_SERVICE_URL
               value: "http://dummy-llm:8001"
-            - name: ORCHESTRATOR_URL
-              value: "http://orchestrator:8002"
+            - name: AGENTIC_AI_URL
+              value: "http://agentic-ai:8002"
             - name: LOG_LEVEL
               valueFrom:
                 configMapKeyRef:

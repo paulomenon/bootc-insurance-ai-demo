@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 import requests
 import time
-from shared.config import TELEGRAM_BOT_TOKEN, LLM_SERVICE_URL, ORCHESTRATOR_URL
+from shared.config import TELEGRAM_BOT_TOKEN, LLM_SERVICE_URL, AGENTIC_AI_URL
 from shared.logger import get_logger
 
 log = get_logger("telegram-bot")
@@ -58,11 +58,11 @@ def analyze_message(text: str) -> dict:
         return {"intent": "unknown", "confidence": 0, "entities": {}, "routing": "none"}
 
 
-def process_with_orchestrator(llm_result: dict) -> dict:
+def process_with_agentic_ai(llm_result: dict) -> dict:
     """Send the LLM analysis to the Agentic AI for agent coordination."""
     try:
         resp = requests.post(
-            f"{ORCHESTRATOR_URL}/process",
+            f"{AGENTIC_AI_URL}/process",
             json=llm_result,
             timeout=30,
         )
@@ -95,7 +95,7 @@ def handle_message(chat_id: int, text: str, user_name: str):
         )
         return
 
-    result = process_with_orchestrator(llm_result)
+    result = process_with_agentic_ai(llm_result)
     send_message(chat_id, result.get("message", "Something went wrong. Please try again."))
 
 
@@ -107,7 +107,7 @@ def main():
 
     log.info("Telegram bot starting (long polling mode)...")
     log.info(f"LLM Service: {LLM_SERVICE_URL}")
-    log.info(f"Agentic AI: {ORCHESTRATOR_URL}")
+    log.info(f"Agentic AI: {AGENTIC_AI_URL}")
 
     offset = 0
     while True:

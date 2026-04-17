@@ -150,7 +150,7 @@ You need a Telegram bot token from **BotFather**:
 |---|---|---|---|
 | `TELEGRAM_BOT_TOKEN` | Yes | — | Token from BotFather |
 | `LLM_SERVICE_URL` | No | `http://localhost:8001` | Dummy LLM service URL |
-| `ORCHESTRATOR_URL` | No | `http://localhost:8002` | Agentic AI service URL |
+| `AGENTIC_AI_URL` | No | `http://localhost:8002` | Agentic AI service URL |
 | `INSURANCE_AGENT_URL` | No | `http://localhost:8003` | Insurance agent URL |
 | `DISPATCH_AGENT_URL` | No | `http://localhost:8004` | Dispatch agent URL |
 | `LOG_LEVEL` | No | `INFO` | Logging level |
@@ -179,7 +179,7 @@ bootc-insurance-ai-demo/
 │   ├── dummy-llm/             # Intent detection + entity extraction
 │   │   ├── app.py
 │   │   └── requirements.txt
-│   ├── orchestrator/          # Agentic AI — agent coordination + response building
+│   ├── orchestrator/          # Agentic AI — coordinates agents + builds responses
 │   │   ├── app.py
 │   │   └── requirements.txt
 │   ├── insurance-agent/       # Policy coverage checks
@@ -256,10 +256,10 @@ PORT=8003 python services/insurance-agent/app.py
 PORT=8004 python services/dispatch-agent/app.py
 
 # Terminal 4: Agentic AI
-PORT=8002 INSURANCE_AGENT_URL=http://localhost:8003 DISPATCH_AGENT_URL=http://localhost:8004 python services/orchestrator/app.py
+PORT=8002 INSURANCE_AGENT_URL=http://localhost:8003 DISPATCH_AGENT_URL=http://localhost:8004 python services/orchestrator/app.py  # Agentic AI
 
 # Terminal 5: Telegram Bot
-TELEGRAM_BOT_TOKEN=your-token LLM_SERVICE_URL=http://localhost:8001 ORCHESTRATOR_URL=http://localhost:8002 python services/telegram-bot/app.py
+TELEGRAM_BOT_TOKEN=your-token LLM_SERVICE_URL=http://localhost:8001 AGENTIC_AI_URL=http://localhost:8002 python services/telegram-bot/app.py
 ```
 
 ---
@@ -282,7 +282,7 @@ oc -n bootc-insurance-ai create secret generic telegram-bot-token \
 oc -n bootc-insurance-ai start-build dummy-llm
 oc -n bootc-insurance-ai start-build insurance-agent
 oc -n bootc-insurance-ai start-build dispatch-agent
-oc -n bootc-insurance-ai start-build orchestrator
+oc -n bootc-insurance-ai start-build agentic-ai
 oc -n bootc-insurance-ai start-build telegram-bot
 
 # Watch the builds
@@ -292,7 +292,7 @@ oc -n bootc-insurance-ai get builds -w
 oc -n bootc-insurance-ai get pods
 
 # Get the Agentic AI route (for external API access)
-oc -n bootc-insurance-ai get route orchestrator
+oc -n bootc-insurance-ai get route agentic-ai
 ```
 
 ---
@@ -313,7 +313,7 @@ podman build -t bootc-insurance-ai/dispatch-agent:latest \
   --build-arg SERVICE_NAME=dispatch-agent --build-arg SERVICE_PORT=8004 \
   -f Containerfile.service .
 
-podman build -t bootc-insurance-ai/orchestrator:latest \
+podman build -t bootc-insurance-ai/agentic-ai:latest \
   --build-arg SERVICE_NAME=orchestrator --build-arg SERVICE_PORT=8002 \
   -f Containerfile.service .
 
@@ -322,7 +322,7 @@ podman build -t bootc-insurance-ai/telegram-bot:latest \
   -f Containerfile.service .
 
 # Load images into Kind cluster
-for img in dummy-llm insurance-agent dispatch-agent orchestrator telegram-bot; do
+for img in dummy-llm insurance-agent dispatch-agent agentic-ai telegram-bot; do
   kind load docker-image bootc-insurance-ai/$img:latest --name python-samples
 done
 
@@ -376,7 +376,7 @@ Expected LLM response:
     "requested_transport": "ambulance",
     "severity": "medium"
   },
-  "routing": "orchestrator"
+  "routing": "agentic_ai"
 }
 ```
 
@@ -394,7 +394,7 @@ curl -X POST http://localhost:8002/process \
       "requested_transport": "ambulance",
       "severity": "medium"
     },
-    "routing": "orchestrator"
+    "routing": "agentic_ai"
   }'
 ```
 
@@ -412,7 +412,7 @@ curl -X POST http://localhost:8002/process \
       "requested_transport": "helicopter",
       "severity": "high"
     },
-    "routing": "orchestrator"
+    "routing": "agentic_ai"
   }'
 ```
 

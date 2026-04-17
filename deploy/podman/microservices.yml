@@ -19,7 +19,7 @@ services:
       timeout: 5s
       retries: 3
 
-  orchestrator:
+  agentic-ai:
     build:
       context: ../..
       dockerfile: Containerfile.service
@@ -88,8 +88,8 @@ services:
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - LLM_SERVICE_URL=http://dummy-llm:8001
-      - ORCHESTRATOR_URL=http://orchestrator:8002
+      - AGENTIC_AI_URL=http://agentic-ai:8002
       - LOG_LEVEL=INFO
     depends_on:
       - dummy-llm
-      - orchestrator
+      - agentic-ai

@@ -124,7 +124,7 @@ def process():
     intent = data.get("intent", "unknown")
     entities = data.get("entities", {})
     confidence = data.get("confidence", 0)
-    routing = data.get("routing", "orchestrator")
+    routing = data.get("routing", "agentic_ai")
 
     log.info(f"Processing: intent={intent}, routing={routing}, confidence={confidence}")
 

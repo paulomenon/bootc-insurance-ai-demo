@@ -56,7 +56,7 @@ class DispatchResult:
 
 
 @dataclass
-class OrchestratorResponse:
+class AgenticAIResponse:
     success: bool = True
     intent: str = ""
     insurance: Optional[dict] = None
