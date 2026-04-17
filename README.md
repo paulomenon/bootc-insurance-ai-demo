@@ -24,7 +24,7 @@ In this project, the bootable container runs **5 services** managed by `supervis
 | Dummy LLM | 8001 | Intent detection and entity extraction |
 | Agentic AI | 8002 | Coordinates agents, builds responses |
 | Insurance AI Agent | 8003 | Checks policy coverage |
-| Dispatch AI Agent | 8004 | Simulates ambulance/helicopter dispatch |
+| Operator Agent | 8004 | Auto-connects to nearest hospital for emergencies, appointments, and dispatch |
 | Telegram Bot | — | Receives messages, sends responses |
 
 ---
@@ -39,9 +39,9 @@ The system:
 
 1. Detects the intent (emergency ambulance request)
 2. Extracts entities (location: alps, activity: skiing, transport: ambulance)
-3. Checks insurance coverage (ambulance covered under standard plan)
-4. Dispatches an ambulance to the nearest hospital
-5. Returns a formatted response with coverage details, dispatch info, ETA, and hospital name
+3. Checks insurance coverage via the **Insurance AI Agent** (ambulance covered under standard plan)
+4. The **Operator Agent** auto-connects to the nearest hospital, dispatches an ambulance, and pre-alerts the facility
+5. Returns a formatted response with coverage details, hospital connection, ETA, and dispatch info
 
 Another scenario:
 
@@ -50,9 +50,38 @@ Another scenario:
 The system:
 
 1. Detects helicopter request intent
-2. Checks insurance (helicopter NOT covered under standard plan)
-3. Falls back to ambulance dispatch
-4. Returns response explaining coverage denial + ambulance dispatch instead
+2. **Insurance AI Agent** checks coverage (helicopter NOT covered under standard plan)
+3. **Operator Agent** falls back to ground ambulance, auto-connects to nearest hospital
+4. Returns response explaining coverage denial + ambulance dispatch with hospital connection
+
+---
+
+## How the Operator Agent Works
+
+The **Operator Agent** is the system's operations hub. After the **Agentic AI** receives a response from the **Insurance AI Agent** confirming (or denying) coverage, it forwards the request to the Operator Agent.
+
+The Operator Agent automatically:
+
+1. **Locates the nearest hospital** — uses the user's location (alps, mountain, city, beach) to find the closest medical facility from its database
+2. **Dispatches emergency help** — for emergencies, it dispatches an ambulance or helicopter, generates a unit callsign, calculates an ETA based on severity, and pre-alerts the hospital
+3. **Books appointments** — for non-emergency requests, it connects to the nearest hospital that accepts appointments and books a slot
+4. **Handles fallbacks** — if the insurance check says helicopter is not covered, the Operator Agent automatically falls back to a ground ambulance
+
+**Flow:**
+
+```
+User message → Dummy LLM (intent) → Agentic AI
+                                        │
+                                        ├──▶ Insurance AI Agent (is it covered?)
+                                        │         │
+                                        │         ▼
+                                        ├──▶ Operator Agent (connect to hospital, dispatch help)
+                                        │         │
+                                        ▼         ▼
+                                    Merge results → Telegram response
+```
+
+The Operator Agent endpoint is `/operate` (POST) — it receives the intent, entities, and the insurance decision, then returns the full operation result including hospital name, distance, ETA, unit callsign, and connection status.
 
 ---
 
@@ -76,7 +105,7 @@ The system:
 │  ┌──────────────────────┐              ┌────────────────────┐    │
 │  │                      │              │                    │    │
 │  │  Insurance Coverage  │              │  Emergency         │    │
-│  │  AI Agent            │              │  Dispatch AI Agent │    │
+│  │  AI Agent            │              │  Operator          │    │
 │  │  :8003               │              │  :8004             │    │
 │  │                      │              │                    │    │
 │  └──────────────────────┘              └────────────────────┘    │
@@ -91,8 +120,8 @@ User (Telegram) → Bot → Dummy LLM (analyze) → Agentic AI (coordinate)
                                                     │
                                           ┌─────────┴─────────┐
                                           ▼                   ▼
-                                   Insurance AI Agent   Dispatch AI Agent
-                                   (check coverage)     (send ambulance)
+                                   Insurance AI Agent   Operator Agent
+                                   (check coverage)     (connect hospital)
                                           │                   │
                                           └─────────┬─────────┘
                                                     ▼
@@ -108,9 +137,9 @@ User (Telegram) → Bot → Dummy LLM (analyze) → Agentic AI (coordinate)
 |---|---|
 | **Telegram Bot** | Long-polls the Telegram API for messages, sends them through the pipeline, returns formatted responses |
 | **Dummy LLM** | Pattern-based intent detection (no real AI). Classifies messages as emergency_ambulance, emergency_helicopter, coverage_inquiry, or greeting. Extracts entities: location, activity, transport type, severity |
-| **Agentic AI** | Routes requests to the correct agents based on intent. For emergencies: calls Insurance AI Agent first, then Dispatch AI Agent, then merges results. For greetings: responds directly |
+| **Agentic AI** | Routes requests to the correct agents based on intent. For emergencies: calls Insurance AI Agent first (coverage check), then Operator Agent (hospital connection + dispatch), then merges results. For greetings: responds directly |
 | **Insurance AI Agent** | Checks mock policy rules. Ambulance is covered (10% copay, €50k limit). Helicopter is NOT covered on standard plan (suggests upgrade). Activity and location coverage checks included |
-| **Dispatch AI Agent** | Simulates emergency dispatch. Selects nearest hospital from a mock database. Generates ETA, unit callsign, dispatch ID. Pre-alerts the hospital. Falls back to ambulance if helicopter isn't covered |
+| **Operator Agent** | Automatically locates and connects to the nearest hospital based on the user's location. Handles emergencies (ambulance/helicopter dispatch, hospital pre-alert, ETA), appointments (auto-booking at nearest available facility), and general help requests. Receives the insurance decision from the Agentic AI and acts accordingly — if helicopter is not covered, falls back to ground ambulance |
 
 ---
 
@@ -152,7 +181,7 @@ You need a Telegram bot token from **BotFather**:
 | `LLM_SERVICE_URL` | No | `http://localhost:8001` | Dummy LLM service URL |
 | `AGENTIC_AI_URL` | No | `http://localhost:8002` | Agentic AI service URL |
 | `INSURANCE_AI_AGENT_URL` | No | `http://localhost:8003` | Insurance AI Agent URL |
-| `DISPATCH_AI_AGENT_URL` | No | `http://localhost:8004` | Dispatch AI Agent URL |
+| `OPERATOR_AGENT_URL` | No | `http://localhost:8004` | Operator Agent URL |
 | `LOG_LEVEL` | No | `INFO` | Logging level |
 
 ---
@@ -185,7 +214,7 @@ bootc-insurance-ai-demo/
 │   ├── insurance-ai-agent/    # Insurance AI Agent — policy coverage checks
 │   │   ├── app.py
 │   │   └── requirements.txt
-│   └── dispatch-ai-agent/     # Dispatch AI Agent — emergency dispatch simulation
+│   └── operator-agent/        # Operator Agent — hospital connection, dispatch, appointments
 │       ├── app.py
 │       └── requirements.txt
 │
@@ -252,11 +281,11 @@ PORT=8001 python services/dummy-llm/app.py
 # Terminal 2: Insurance AI Agent
 PORT=8003 python services/insurance-ai-agent/app.py
 
-# Terminal 3: Dispatch AI Agent
-PORT=8004 python services/dispatch-ai-agent/app.py
+# Terminal 3: Operator Agent
+PORT=8004 python services/operator-agent/app.py
 
 # Terminal 4: Agentic AI
-PORT=8002 INSURANCE_AI_AGENT_URL=http://localhost:8003 DISPATCH_AI_AGENT_URL=http://localhost:8004 python services/agentic-ai/app.py
+PORT=8002 INSURANCE_AI_AGENT_URL=http://localhost:8003 OPERATOR_AGENT_URL=http://localhost:8004 python services/agentic-ai/app.py
 
 # Terminal 5: Telegram Bot
 TELEGRAM_BOT_TOKEN=your-token LLM_SERVICE_URL=http://localhost:8001 AGENTIC_AI_URL=http://localhost:8002 python services/telegram-bot/app.py
@@ -281,7 +310,7 @@ oc -n bootc-insurance-ai create secret generic telegram-bot-token \
 # Start builds for all services
 oc -n bootc-insurance-ai start-build dummy-llm
 oc -n bootc-insurance-ai start-build insurance-agent
-oc -n bootc-insurance-ai start-build dispatch-agent
+oc -n bootc-insurance-ai start-build operator-agent
 oc -n bootc-insurance-ai start-build agentic-ai
 oc -n bootc-insurance-ai start-build telegram-bot
 
@@ -309,8 +338,8 @@ podman build -t bootc-insurance-ai/insurance-agent:latest \
   --build-arg SERVICE_NAME=insurance-ai-agent --build-arg SERVICE_PORT=8003 \
   -f Containerfile.service .
 
-podman build -t bootc-insurance-ai/dispatch-agent:latest \
-  --build-arg SERVICE_NAME=dispatch-ai-agent --build-arg SERVICE_PORT=8004 \
+podman build -t bootc-insurance-ai/operator-agent:latest \
+  --build-arg SERVICE_NAME=operator-agent --build-arg SERVICE_PORT=8004 \
   -f Containerfile.service .
 
 podman build -t bootc-insurance-ai/agentic-ai:latest \
@@ -322,7 +351,7 @@ podman build -t bootc-insurance-ai/telegram-bot:latest \
   -f Containerfile.service .
 
 # Load images into Kind cluster
-for img in dummy-llm insurance-agent dispatch-agent agentic-ai telegram-bot; do
+for img in dummy-llm insurance-agent operator-agent agentic-ai telegram-bot; do
   kind load docker-image bootc-insurance-ai/$img:latest --name python-samples
 done
 
@@ -350,7 +379,7 @@ kubectl -n bootc-insurance-ai get services
 curl http://localhost:8001/health   # Dummy LLM
 curl http://localhost:8002/health   # Agentic AI
 curl http://localhost:8003/health   # Insurance AI Agent
-curl http://localhost:8004/health   # Dispatch AI Agent
+curl http://localhost:8004/health   # Operator Agent
 ```
 
 ### Test 2: Ambulance Request (Covered)
@@ -423,10 +452,10 @@ Send these messages to your bot:
 | Message | Expected Behavior |
 |---|---|
 | "Hello" | Greeting response with available commands |
-| "I had a ski accident in the Alps, I need an ambulance" | Full emergency flow — ambulance dispatched, insurance approved |
-| "I want a helicopter" | Helicopter denied (not covered), ambulance dispatched as fallback |
+| "I had a ski accident in the Alps, I need an ambulance" | Full flow — insurance approved, Operator Agent connects to nearest hospital, ambulance dispatched |
+| "I want a helicopter" | Insurance denies helicopter, Operator Agent falls back to ambulance, connects to nearest hospital |
 | "Is my policy covering helicopter transport?" | Coverage inquiry — shows policy details |
-| "I fell while hiking and I'm bleeding badly" | Emergency flow with high severity, ambulance dispatched |
+| "I fell while hiking and I'm bleeding badly" | Emergency flow with high severity, Operator Agent dispatches ambulance to nearest hospital |
 
 ---
 
@@ -442,12 +471,13 @@ Send these messages to your bot:
   💰 Limit: €50,000 per incident
   📊 Copay: 10%
 
-🚑 Emergency Dispatch:
-  📍 Dispatch ID: DSP-20260416-A3F2B1
+🏥 Operator Agent — Hospital Connection:
+  📍 Operation ID: OP-20260416-A3F2B1
   🚑 Unit: ALPHA-07 (ambulance)
   ⏱ ETA: 12 minutes
   🏥 Hospital: Zermatt Medical Center
   📏 Distance: 3.2 km
+  ✅ Connected to hospital
   ✅ Hospital has been pre-alerted
 
 ⚠️ This is a simulation — not connected to real emergency services.
@@ -462,14 +492,15 @@ Send these messages to your bot:
   ❌ Not Covered — Helicopter transport is not covered under your current Standard plan
   💡 Upgrade to Premium plan (€29.99/month) for helicopter coverage up to €100,000
 
-🚑 Emergency Dispatch:
-  📍 Dispatch ID: DSP-20260416-7B1C4E
+🏥 Operator Agent — Hospital Connection:
+  📍 Operation ID: OP-20260416-7B1C4E
   🚑 Unit: BRAVO-23 (ambulance)
   ⏱ ETA: 15 minutes
   🏥 Hospital: Innsbruck University Hospital
   📏 Distance: 12.5 km
   ✅ Hospital has been pre-alerted
   ⚠️ Helicopter not covered by insurance — dispatching ground ambulance instead
+  ✅ Connected to hospital
 
 ⚠️ This is a simulation — not connected to real emergency services.
 ```
@@ -484,7 +515,7 @@ All communication is via **HTTP REST calls** over the internal container network
 Telegram Bot  ──POST /analyze──▶  Dummy LLM (:8001)
 Telegram Bot  ──POST /process──▶  Agentic AI (:8002)
 Agentic AI    ──POST /check────▶  Insurance AI Agent (:8003)
-Agentic AI    ──POST /dispatch─▶  Dispatch AI Agent (:8004)
+Agentic AI    ──POST /operate──▶  Operator Agent (:8004)
 ```
 
 | Endpoint | Method | Service | Description |
@@ -493,12 +524,12 @@ Agentic AI    ──POST /dispatch─▶  Dispatch AI Agent (:8004)
 | `/analyze` | POST | Dummy LLM | Analyze message text, return intent + entities |
 | `/process` | POST | Agentic AI | Full workflow: route to agents, build response |
 | `/check` | POST | Insurance AI Agent | Check policy coverage for given intent + entities |
-| `/dispatch` | POST | Dispatch AI Agent | Dispatch emergency transport |
+| `/operate` | POST | Operator Agent | Auto-connect to nearest hospital, dispatch emergency help or book appointment |
 
 ---
 
 ## Disclaimer
 
-This project is a **technical demonstration only**. It is not connected to any real emergency services, insurance systems, or medical infrastructure. All data, policy rules, hospital names, and dispatch information are entirely fictional.
+This project is a **technical demonstration only**. It is not connected to any real emergency services, insurance systems, or medical infrastructure. All data, policy rules, hospital names, and operator connections are entirely fictional.
 
 **In a real emergency, always call your local emergency number (112 in Europe, 911 in the US).**

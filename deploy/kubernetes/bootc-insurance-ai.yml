@@ -141,26 +141,26 @@ spec:
     - port: 8003
       targetPort: 8003
 ---
-# Dispatch AI Agent Service
+# Operator Agent Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dispatch-agent
+  name: operator-agent
   namespace: bootc-insurance-ai
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dispatch-agent
+      app: operator-agent
   template:
     metadata:
       labels:
-        app: dispatch-agent
+        app: operator-agent
         system: bootc-insurance-ai
     spec:
       containers:
-        - name: dispatch-agent
-          image: bootc-insurance-ai/dispatch-agent:latest
+        - name: operator-agent
+          image: bootc-insurance-ai/operator-agent:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8004
@@ -189,11 +189,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: dispatch-agent
+  name: operator-agent
   namespace: bootc-insurance-ai
 spec:
   selector:
-    app: dispatch-agent
+    app: operator-agent
   ports:
     - port: 8004
       targetPort: 8004
@@ -226,8 +226,8 @@ spec:
               value: "8002"
             - name: INSURANCE_AI_AGENT_URL
               value: "http://insurance-agent:8003"
-            - name: DISPATCH_AI_AGENT_URL
-              value: "http://dispatch-agent:8004"
+            - name: OPERATOR_AGENT_URL
+              value: "http://operator-agent:8004"
             - name: LOG_LEVEL
               valueFrom:
                 configMapKeyRef:

@@ -173,13 +173,13 @@ spec:
 apiVersion: image.openshift.io/v1
 kind: ImageStream
 metadata:
-  name: dispatch-agent
+  name: operator-agent
   namespace: bootc-insurance-ai
 ---
 apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
-  name: dispatch-agent
+  name: operator-agent
   namespace: bootc-insurance-ai
 spec:
   source:
@@ -194,36 +194,36 @@ spec:
       dockerfilePath: Containerfile.service
       buildArgs:
         - name: SERVICE_NAME
-          value: dispatch-ai-agent
+          value: operator-agent
         - name: SERVICE_PORT
           value: "8004"
   output:
     to:
       kind: ImageStreamTag
-      name: dispatch-agent:latest
+      name: operator-agent:latest
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dispatch-agent
+  name: operator-agent
   namespace: bootc-insurance-ai
   annotations:
     image.openshift.io/triggers: >-
-      [{"from":{"kind":"ImageStreamTag","name":"dispatch-agent:latest"},"fieldPath":"spec.template.spec.containers[0].image"}]
+      [{"from":{"kind":"ImageStreamTag","name":"operator-agent:latest"},"fieldPath":"spec.template.spec.containers[0].image"}]
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dispatch-agent
+      app: operator-agent
   template:
     metadata:
       labels:
-        app: dispatch-agent
+        app: operator-agent
         system: bootc-insurance-ai
     spec:
       containers:
-        - name: dispatch-agent
-          image: image-registry.openshift-image-registry.svc:5000/bootc-insurance-ai/dispatch-agent:latest
+        - name: operator-agent
+          image: image-registry.openshift-image-registry.svc:5000/bootc-insurance-ai/operator-agent:latest
           ports:
             - containerPort: 8004
           env:
@@ -241,11 +241,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: dispatch-agent
+  name: operator-agent
   namespace: bootc-insurance-ai
 spec:
   selector:
-    app: dispatch-agent
+    app: operator-agent
   ports:
     - port: 8004
       targetPort: 8004
@@ -311,8 +311,8 @@ spec:
               value: "8002"
             - name: INSURANCE_AI_AGENT_URL
               value: "http://insurance-agent:8003"
-            - name: DISPATCH_AI_AGENT_URL
-              value: "http://dispatch-agent:8004"
+            - name: OPERATOR_AGENT_URL
+              value: "http://operator-agent:8004"
             - name: LOG_LEVEL
               value: "INFO"
           readinessProbe:

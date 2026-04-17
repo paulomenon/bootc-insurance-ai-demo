@@ -31,11 +31,11 @@ services:
     environment:
       - PORT=8002
       - INSURANCE_AI_AGENT_URL=http://insurance-agent:8003
-      - DISPATCH_AI_AGENT_URL=http://dispatch-agent:8004
+      - OPERATOR_AGENT_URL=http://operator-agent:8004
       - LOG_LEVEL=INFO
     depends_on:
       - insurance-agent
-      - dispatch-agent
+      - operator-agent
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
       interval: 10s
@@ -60,12 +60,12 @@ services:
       timeout: 5s
       retries: 3
 
-  dispatch-agent:
+  operator-agent:
     build:
       context: ../..
       dockerfile: Containerfile.service
       args:
-        SERVICE_NAME: dispatch-ai-agent
+        SERVICE_NAME: operator-agent
         SERVICE_PORT: "8004"
     ports:
       - "8004:8004"

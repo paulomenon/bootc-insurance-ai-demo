@@ -40,14 +40,16 @@ class InsuranceDecision:
 
 
 @dataclass
-class DispatchResult:
-    dispatch_id: str = ""
+class OperatorResult:
+    operation_id: str = ""
+    operation_type: str = ""
     transport_type: str = ""
     unit_callsign: str = ""
     eta_minutes: int = 0
     hospital_name: str = ""
     hospital_distance_km: float = 0.0
-    hospital_alerted: bool = False
+    hospital_connected: bool = False
+    hospital_pre_alerted: bool = False
     coordinates: dict = field(default_factory=dict)
     status: str = "dispatched"
 
@@ -60,7 +62,7 @@ class AgenticAIResponse:
     success: bool = True
     intent: str = ""
     insurance: Optional[dict] = None
-    dispatch: Optional[dict] = None
+    operation: Optional[dict] = None
     message: str = ""
 
     def to_dict(self):

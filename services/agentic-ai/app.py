@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 import requests
 from flask import Flask, request, jsonify
-from shared.config import INSURANCE_AI_AGENT_URL, DISPATCH_AI_AGENT_URL
+from shared.config import INSURANCE_AI_AGENT_URL, OPERATOR_AGENT_URL
 from shared.logger import get_logger
 
 app = Flask(__name__)
@@ -15,9 +15,9 @@ GREETING_RESPONSES = {
     "greeting": (
         "Hello! I'm your Alpine Insurance emergency assistant.\n\n"
         "I can help you with:\n"
-        "• Emergency ambulance dispatch\n"
+        "• Emergency ambulance or helicopter requests\n"
         "• Insurance coverage checks\n"
-        "• Emergency helicopter requests\n\n"
+        "• Hospital connections and appointments\n\n"
         "Describe your situation and I'll coordinate everything for you."
     ),
 }
@@ -37,10 +37,10 @@ def call_insurance_agent(intent: str, entities: dict) -> dict:
         return {"is_covered": False, "reason": "Insurance AI Agent unavailable", "error": True}
 
 
-def call_dispatch_agent(intent: str, entities: dict, insurance_decision: dict) -> dict:
+def call_operator_agent(intent: str, entities: dict, insurance_decision: dict) -> dict:
     try:
         resp = requests.post(
-            f"{DISPATCH_AI_AGENT_URL}/dispatch",
+            f"{OPERATOR_AGENT_URL}/operate",
             json={
                 "intent": intent,
                 "entities": entities,
@@ -51,11 +51,11 @@ def call_dispatch_agent(intent: str, entities: dict, insurance_decision: dict) -
         resp.raise_for_status()
         return resp.json()
     except requests.RequestException as e:
-        log.error(f"Dispatch AI Agent call failed: {e}")
+        log.error(f"Operator Agent call failed: {e}")
         return {"status": "failed", "error": str(e)}
 
 
-def format_response(intent: str, insurance: dict, dispatch: dict) -> str:
+def format_response(intent: str, insurance: dict, operation: dict) -> str:
     lines = []
     lines.append("🚨 *EMERGENCY RESPONSE ACTIVATED*")
     lines.append("")
@@ -73,21 +73,28 @@ def format_response(intent: str, insurance: dict, dispatch: dict) -> str:
             lines.append(f"  💡 {insurance['upgrade_suggestion']}")
 
     lines.append("")
-    lines.append("🚑 *Emergency Dispatch:*")
-    if dispatch.get("status") == "dispatched":
-        lines.append(f"  📍 Dispatch ID: `{dispatch.get('dispatch_id', 'N/A')}`")
-        transport = dispatch.get("transport_type", "ambulance")
+    lines.append("🏥 *Operator Agent — Hospital Connection:*")
+    if operation.get("status") == "dispatched":
+        lines.append(f"  📍 Operation ID: `{operation.get('operation_id', 'N/A')}`")
+        transport = operation.get("transport_type", "ambulance")
         icon = "🚁" if transport == "helicopter" else "🚑"
-        lines.append(f"  {icon} Unit: {dispatch.get('unit_callsign', 'N/A')} ({transport})")
-        lines.append(f"  ⏱ ETA: {dispatch.get('eta_minutes', '?')} minutes")
-        lines.append(f"  🏥 Hospital: {dispatch.get('hospital_name', 'N/A')}")
-        lines.append(f"  📏 Distance: {dispatch.get('hospital_distance_km', '?')} km")
-        if dispatch.get("hospital_alerted"):
+        lines.append(f"  {icon} Unit: {operation.get('unit_callsign', 'N/A')} ({transport})")
+        lines.append(f"  ⏱ ETA: {operation.get('eta_minutes', '?')} minutes")
+        lines.append(f"  🏥 Hospital: {operation.get('hospital_name', 'N/A')}")
+        lines.append(f"  📏 Distance: {operation.get('hospital_distance_km', '?')} km")
+        if operation.get("hospital_connected"):
+            lines.append("  ✅ Connected to hospital")
+        if operation.get("hospital_pre_alerted"):
             lines.append("  ✅ Hospital has been pre-alerted")
-        if dispatch.get("note"):
-            lines.append(f"  ⚠️ {dispatch['note']}")
+        if operation.get("note"):
+            lines.append(f"  ⚠️ {operation['note']}")
+    elif operation.get("status") == "booked":
+        lines.append(f"  📍 Operation ID: `{operation.get('operation_id', 'N/A')}`")
+        lines.append(f"  🏥 Hospital: {operation.get('hospital_name', 'N/A')}")
+        lines.append(f"  📅 Appointment: {operation.get('appointment_date', 'N/A')} at {operation.get('appointment_time', 'N/A')}")
+        lines.append("  ✅ Connected to hospital — appointment booked")
     else:
-        lines.append("  ❌ Dispatch failed — please call local emergency services")
+        lines.append("  ❌ Operation failed — please call local emergency services")
 
     lines.append("")
     lines.append("⚠️ _This is a simulation — not connected to real emergency services._")
@@ -137,22 +144,22 @@ def process():
         msg = format_coverage_only(insurance)
         return jsonify({"success": True, "intent": intent, "insurance": insurance, "message": msg})
 
-    # Full emergency flow: insurance check → dispatch
-    log.info("Running full emergency flow: insurance → dispatch")
+    # Full flow: Insurance AI Agent checks coverage → Operator Agent connects to hospital
+    log.info("Running full flow: Insurance AI Agent → Operator Agent")
 
     insurance = call_insurance_agent(intent, entities)
     log.info(f"Insurance result: covered={insurance.get('is_covered')}")
 
-    dispatch = call_dispatch_agent(intent, entities, insurance)
-    log.info(f"Dispatch result: status={dispatch.get('status')}")
+    operation = call_operator_agent(intent, entities, insurance)
+    log.info(f"Operator result: status={operation.get('status')}")
 
-    msg = format_response(intent, insurance, dispatch)
+    msg = format_response(intent, insurance, operation)
 
     return jsonify({
         "success": True,
         "intent": intent,
         "insurance": insurance,
-        "dispatch": dispatch,
+        "operation": operation,
         "message": msg,
     })
 
