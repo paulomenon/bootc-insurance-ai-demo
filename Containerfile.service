@@ -1,0 +1,23 @@
+FROM python:3.12-slim
+
+LABEL maintainer="paulomenon"
+LABEL description="Individual service image for bootc-insurance-ai-demo"
+
+ARG SERVICE_NAME
+ARG SERVICE_PORT=8000
+
+WORKDIR /app
+
+COPY shared/ /app/shared/
+COPY services/${SERVICE_NAME}/ /app/service/
+
+RUN pip install --no-cache-dir -r /app/service/requirements.txt
+
+EXPOSE ${SERVICE_PORT}
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${SERVICE_PORT}/health || exit 1
+
+ENV PORT=${SERVICE_PORT}
+
+CMD ["python", "/app/service/app.py"]

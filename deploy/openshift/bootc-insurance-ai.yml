@@ -1,0 +1,425 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bootc-insurance-ai
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: dummy-llm
+  namespace: bootc-insurance-ai
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: dummy-llm
+  namespace: bootc-insurance-ai
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/paulomenon/bootc-insurance-ai-demo.git
+      ref: main
+    contextDir: .
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Containerfile.service
+      buildArgs:
+        - name: SERVICE_NAME
+          value: dummy-llm
+        - name: SERVICE_PORT
+          value: "8001"
+  output:
+    to:
+      kind: ImageStreamTag
+      name: dummy-llm:latest
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dummy-llm
+  namespace: bootc-insurance-ai
+  annotations:
+    image.openshift.io/triggers: >-
+      [{"from":{"kind":"ImageStreamTag","name":"dummy-llm:latest"},"fieldPath":"spec.template.spec.containers[0].image"}]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dummy-llm
+  template:
+    metadata:
+      labels:
+        app: dummy-llm
+        system: bootc-insurance-ai
+    spec:
+      containers:
+        - name: dummy-llm
+          image: image-registry.openshift-image-registry.svc:5000/bootc-insurance-ai/dummy-llm:latest
+          ports:
+            - containerPort: 8001
+          env:
+            - name: PORT
+              value: "8001"
+            - name: LOG_LEVEL
+              value: "INFO"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dummy-llm
+  namespace: bootc-insurance-ai
+spec:
+  selector:
+    app: dummy-llm
+  ports:
+    - port: 8001
+      targetPort: 8001
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: insurance-agent
+  namespace: bootc-insurance-ai
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: insurance-agent
+  namespace: bootc-insurance-ai
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/paulomenon/bootc-insurance-ai-demo.git
+      ref: main
+    contextDir: .
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Containerfile.service
+      buildArgs:
+        - name: SERVICE_NAME
+          value: insurance-agent
+        - name: SERVICE_PORT
+          value: "8003"
+  output:
+    to:
+      kind: ImageStreamTag
+      name: insurance-agent:latest
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: insurance-agent
+  namespace: bootc-insurance-ai
+  annotations:
+    image.openshift.io/triggers: >-
+      [{"from":{"kind":"ImageStreamTag","name":"insurance-agent:latest"},"fieldPath":"spec.template.spec.containers[0].image"}]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: insurance-agent
+  template:
+    metadata:
+      labels:
+        app: insurance-agent
+        system: bootc-insurance-ai
+    spec:
+      containers:
+        - name: insurance-agent
+          image: image-registry.openshift-image-registry.svc:5000/bootc-insurance-ai/insurance-agent:latest
+          ports:
+            - containerPort: 8003
+          env:
+            - name: PORT
+              value: "8003"
+            - name: LOG_LEVEL
+              value: "INFO"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: insurance-agent
+  namespace: bootc-insurance-ai
+spec:
+  selector:
+    app: insurance-agent
+  ports:
+    - port: 8003
+      targetPort: 8003
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: dispatch-agent
+  namespace: bootc-insurance-ai
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: dispatch-agent
+  namespace: bootc-insurance-ai
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/paulomenon/bootc-insurance-ai-demo.git
+      ref: main
+    contextDir: .
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Containerfile.service
+      buildArgs:
+        - name: SERVICE_NAME
+          value: dispatch-agent
+        - name: SERVICE_PORT
+          value: "8004"
+  output:
+    to:
+      kind: ImageStreamTag
+      name: dispatch-agent:latest
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dispatch-agent
+  namespace: bootc-insurance-ai
+  annotations:
+    image.openshift.io/triggers: >-
+      [{"from":{"kind":"ImageStreamTag","name":"dispatch-agent:latest"},"fieldPath":"spec.template.spec.containers[0].image"}]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dispatch-agent
+  template:
+    metadata:
+      labels:
+        app: dispatch-agent
+        system: bootc-insurance-ai
+    spec:
+      containers:
+        - name: dispatch-agent
+          image: image-registry.openshift-image-registry.svc:5000/bootc-insurance-ai/dispatch-agent:latest
+          ports:
+            - containerPort: 8004
+          env:
+            - name: PORT
+              value: "8004"
+            - name: LOG_LEVEL
+              value: "INFO"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dispatch-agent
+  namespace: bootc-insurance-ai
+spec:
+  selector:
+    app: dispatch-agent
+  ports:
+    - port: 8004
+      targetPort: 8004
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: orchestrator
+  namespace: bootc-insurance-ai
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: orchestrator
+  namespace: bootc-insurance-ai
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/paulomenon/bootc-insurance-ai-demo.git
+      ref: main
+    contextDir: .
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Containerfile.service
+      buildArgs:
+        - name: SERVICE_NAME
+          value: orchestrator
+        - name: SERVICE_PORT
+          value: "8002"
+  output:
+    to:
+      kind: ImageStreamTag
+      name: orchestrator:latest
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  namespace: bootc-insurance-ai
+  annotations:
+    image.openshift.io/triggers: >-
+      [{"from":{"kind":"ImageStreamTag","name":"orchestrator:latest"},"fieldPath":"spec.template.spec.containers[0].image"}]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orchestrator
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+        system: bootc-insurance-ai
+    spec:
+      containers:
+        - name: orchestrator
+          image: image-registry.openshift-image-registry.svc:5000/bootc-insurance-ai/orchestrator:latest
+          ports:
+            - containerPort: 8002
+          env:
+            - name: PORT
+              value: "8002"
+            - name: INSURANCE_AGENT_URL
+              value: "http://insurance-agent:8003"
+            - name: DISPATCH_AGENT_URL
+              value: "http://dispatch-agent:8004"
+            - name: LOG_LEVEL
+              value: "INFO"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator
+  namespace: bootc-insurance-ai
+spec:
+  selector:
+    app: orchestrator
+  ports:
+    - port: 8002
+      targetPort: 8002
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: orchestrator
+  namespace: bootc-insurance-ai
+spec:
+  to:
+    kind: Service
+    name: orchestrator
+  port:
+    targetPort: 8002
+  tls:
+    termination: edge
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: telegram-bot-token
+  namespace: bootc-insurance-ai
+type: Opaque
+stringData:
+  TELEGRAM_BOT_TOKEN: "your-telegram-bot-token-here"
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: telegram-bot
+  namespace: bootc-insurance-ai
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: telegram-bot
+  namespace: bootc-insurance-ai
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/paulomenon/bootc-insurance-ai-demo.git
+      ref: main
+    contextDir: .
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Containerfile.service
+      buildArgs:
+        - name: SERVICE_NAME
+          value: telegram-bot
+        - name: SERVICE_PORT
+          value: "8005"
+  output:
+    to:
+      kind: ImageStreamTag
+      name: telegram-bot:latest
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegram-bot
+  namespace: bootc-insurance-ai
+  annotations:
+    image.openshift.io/triggers: >-
+      [{"from":{"kind":"ImageStreamTag","name":"telegram-bot:latest"},"fieldPath":"spec.template.spec.containers[0].image"}]
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telegram-bot
+  template:
+    metadata:
+      labels:
+        app: telegram-bot
+        system: bootc-insurance-ai
+    spec:
+      containers:
+        - name: telegram-bot
+          image: image-registry.openshift-image-registry.svc:5000/bootc-insurance-ai/telegram-bot:latest
+          env:
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: telegram-bot-token
+                  key: TELEGRAM_BOT_TOKEN
+            - name: LLM_SERVICE_URL
+              value: "http://dummy-llm:8001"
+            - name: ORCHESTRATOR_URL
+              value: "http://orchestrator:8002"
+            - name: LOG_LEVEL
+              value: "INFO"

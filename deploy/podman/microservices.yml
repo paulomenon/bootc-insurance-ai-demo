@@ -1,0 +1,95 @@
+version: "3.8"
+
+services:
+  dummy-llm:
+    build:
+      context: ../..
+      dockerfile: Containerfile.service
+      args:
+        SERVICE_NAME: dummy-llm
+        SERVICE_PORT: "8001"
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  orchestrator:
+    build:
+      context: ../..
+      dockerfile: Containerfile.service
+      args:
+        SERVICE_NAME: orchestrator
+        SERVICE_PORT: "8002"
+    ports:
+      - "8002:8002"
+    environment:
+      - PORT=8002
+      - INSURANCE_AGENT_URL=http://insurance-agent:8003
+      - DISPATCH_AGENT_URL=http://dispatch-agent:8004
+      - LOG_LEVEL=INFO
+    depends_on:
+      - insurance-agent
+      - dispatch-agent
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  insurance-agent:
+    build:
+      context: ../..
+      dockerfile: Containerfile.service
+      args:
+        SERVICE_NAME: insurance-agent
+        SERVICE_PORT: "8003"
+    ports:
+      - "8003:8003"
+    environment:
+      - PORT=8003
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  dispatch-agent:
+    build:
+      context: ../..
+      dockerfile: Containerfile.service
+      args:
+        SERVICE_NAME: dispatch-agent
+        SERVICE_PORT: "8004"
+    ports:
+      - "8004:8004"
+    environment:
+      - PORT=8004
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  telegram-bot:
+    build:
+      context: ../..
+      dockerfile: Containerfile.service
+      args:
+        SERVICE_NAME: telegram-bot
+        SERVICE_PORT: "8005"
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - LLM_SERVICE_URL=http://dummy-llm:8001
+      - ORCHESTRATOR_URL=http://orchestrator:8002
+      - LOG_LEVEL=INFO
+    depends_on:
+      - dummy-llm
+      - orchestrator

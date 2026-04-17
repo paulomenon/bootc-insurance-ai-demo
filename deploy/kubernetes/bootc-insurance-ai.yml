@@ -1,0 +1,304 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bootc-insurance-ai
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-config
+  namespace: bootc-insurance-ai
+data:
+  LOG_LEVEL: "INFO"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: telegram-bot-token
+  namespace: bootc-insurance-ai
+type: Opaque
+stringData:
+  TELEGRAM_BOT_TOKEN: "your-telegram-bot-token-here"
+---
+# Dummy LLM Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dummy-llm
+  namespace: bootc-insurance-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dummy-llm
+  template:
+    metadata:
+      labels:
+        app: dummy-llm
+        system: bootc-insurance-ai
+    spec:
+      containers:
+        - name: dummy-llm
+          image: bootc-insurance-ai/dummy-llm:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8001
+          env:
+            - name: PORT
+              value: "8001"
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: service-config
+                  key: LOG_LEVEL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dummy-llm
+  namespace: bootc-insurance-ai
+spec:
+  selector:
+    app: dummy-llm
+  ports:
+    - port: 8001
+      targetPort: 8001
+---
+# Insurance Agent Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: insurance-agent
+  namespace: bootc-insurance-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: insurance-agent
+  template:
+    metadata:
+      labels:
+        app: insurance-agent
+        system: bootc-insurance-ai
+    spec:
+      containers:
+        - name: insurance-agent
+          image: bootc-insurance-ai/insurance-agent:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8003
+          env:
+            - name: PORT
+              value: "8003"
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: service-config
+                  key: LOG_LEVEL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8003
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: insurance-agent
+  namespace: bootc-insurance-ai
+spec:
+  selector:
+    app: insurance-agent
+  ports:
+    - port: 8003
+      targetPort: 8003
+---
+# Dispatch Agent Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dispatch-agent
+  namespace: bootc-insurance-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dispatch-agent
+  template:
+    metadata:
+      labels:
+        app: dispatch-agent
+        system: bootc-insurance-ai
+    spec:
+      containers:
+        - name: dispatch-agent
+          image: bootc-insurance-ai/dispatch-agent:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8004
+          env:
+            - name: PORT
+              value: "8004"
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: service-config
+                  key: LOG_LEVEL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dispatch-agent
+  namespace: bootc-insurance-ai
+spec:
+  selector:
+    app: dispatch-agent
+  ports:
+    - port: 8004
+      targetPort: 8004
+---
+# Orchestrator Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  namespace: bootc-insurance-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orchestrator
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+        system: bootc-insurance-ai
+    spec:
+      containers:
+        - name: orchestrator
+          image: bootc-insurance-ai/orchestrator:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8002
+          env:
+            - name: PORT
+              value: "8002"
+            - name: INSURANCE_AGENT_URL
+              value: "http://insurance-agent:8003"
+            - name: DISPATCH_AGENT_URL
+              value: "http://dispatch-agent:8004"
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: service-config
+                  key: LOG_LEVEL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator
+  namespace: bootc-insurance-ai
+spec:
+  selector:
+    app: orchestrator
+  ports:
+    - port: 8002
+      targetPort: 8002
+---
+# Telegram Bot
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telegram-bot
+  namespace: bootc-insurance-ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telegram-bot
+  template:
+    metadata:
+      labels:
+        app: telegram-bot
+        system: bootc-insurance-ai
+    spec:
+      containers:
+        - name: telegram-bot
+          image: bootc-insurance-ai/telegram-bot:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: telegram-bot-token
+                  key: TELEGRAM_BOT_TOKEN
+            - name: LLM_SERVICE_URL
+              value: "http://dummy-llm:8001"
+            - name: ORCHESTRATOR_URL
+              value: "http://orchestrator:8002"
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: service-config
+                  key: LOG_LEVEL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
