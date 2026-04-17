@@ -33,8 +33,8 @@ def call_insurance_agent(intent: str, entities: dict) -> dict:
         resp.raise_for_status()
         return resp.json()
     except requests.RequestException as e:
-        log.error(f"Insurance agent call failed: {e}")
-        return {"is_covered": False, "reason": "Insurance service unavailable", "error": True}
+        log.error(f"Insurance AI Agent call failed: {e}")
+        return {"is_covered": False, "reason": "Insurance AI Agent unavailable", "error": True}
 
 
 def call_dispatch_agent(intent: str, entities: dict, insurance_decision: dict) -> dict:
@@ -51,7 +51,7 @@ def call_dispatch_agent(intent: str, entities: dict, insurance_decision: dict) -
         resp.raise_for_status()
         return resp.json()
     except requests.RequestException as e:
-        log.error(f"Dispatch agent call failed: {e}")
+        log.error(f"Dispatch AI Agent call failed: {e}")
         return {"status": "failed", "error": str(e)}
 
 

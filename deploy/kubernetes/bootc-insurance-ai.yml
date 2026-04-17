@@ -84,7 +84,7 @@ spec:
     - port: 8001
       targetPort: 8001
 ---
-# Insurance Agent Service
+# Insurance AI Agent Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -141,7 +141,7 @@ spec:
     - port: 8003
       targetPort: 8003
 ---
-# Dispatch Agent Service
+# Dispatch AI Agent Service
 apiVersion: apps/v1
 kind: Deployment
 metadata:

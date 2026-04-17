@@ -9,7 +9,7 @@ from flask import Flask, request, jsonify
 from shared.logger import get_logger
 
 app = Flask(__name__)
-log = get_logger("insurance-agent")
+log = get_logger("insurance-ai-agent")
 
 POLICY_RULES = {
     "ambulance": {
@@ -91,7 +91,7 @@ def check_coverage(intent: str, entities: dict) -> dict:
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "healthy", "service": "insurance-agent"})
+    return jsonify({"status": "healthy", "service": "insurance-ai-agent"})
 
 
 @app.route("/check", methods=["POST"])
@@ -109,5 +109,5 @@ def check():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8003))
-    log.info(f"Insurance Coverage Agent starting on port {port}")
+    log.info(f"Insurance Coverage AI Agent starting on port {port}")
     app.run(host="0.0.0.0", port=port)

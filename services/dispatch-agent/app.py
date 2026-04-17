@@ -10,7 +10,7 @@ from flask import Flask, request, jsonify
 from shared.logger import get_logger
 
 app = Flask(__name__)
-log = get_logger("dispatch-agent")
+log = get_logger("dispatch-ai-agent")
 
 HOSPITALS = {
     "alps": [
@@ -112,7 +112,7 @@ def dispatch_emergency(intent: str, entities: dict, insurance_decision: dict) ->
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "healthy", "service": "dispatch-agent"})
+    return jsonify({"status": "healthy", "service": "dispatch-ai-agent"})
 
 
 @app.route("/dispatch", methods=["POST"])
@@ -131,5 +131,5 @@ def dispatch():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8004))
-    log.info(f"Emergency Dispatch Agent starting on port {port}")
+    log.info(f"Emergency Dispatch AI Agent starting on port {port}")
     app.run(host="0.0.0.0", port=port)

@@ -23,8 +23,8 @@ In this project, the bootable container runs **5 services** managed by `supervis
 |---|---|---|
 | Dummy LLM | 8001 | Intent detection and entity extraction |
 | Orchestrator | 8002 | Coordinates agents, builds responses |
-| Insurance Agent | 8003 | Checks policy coverage |
-| Dispatch Agent | 8004 | Simulates ambulance/helicopter dispatch |
+| Insurance AI Agent | 8003 | Checks policy coverage |
+| Dispatch AI Agent | 8004 | Simulates ambulance/helicopter dispatch |
 | Telegram Bot | — | Receives messages, sends responses |
 
 ---
@@ -76,7 +76,7 @@ The system:
 │  ┌──────────────────────┐              ┌────────────────────┐    │
 │  │                      │              │                    │    │
 │  │  Insurance Coverage  │              │  Emergency         │    │
-│  │  Agent               │              │  Dispatch Agent    │    │
+│  │  AI Agent            │              │  Dispatch AI Agent │    │
 │  │  :8003               │              │  :8004             │    │
 │  │                      │              │                    │    │
 │  └──────────────────────┘              └────────────────────┘    │
@@ -91,7 +91,7 @@ User (Telegram) → Bot → Dummy LLM (analyze) → Orchestrator (coordinate)
                                                     │
                                           ┌─────────┴─────────┐
                                           ▼                   ▼
-                                   Insurance Agent      Dispatch Agent
+                                   Insurance AI Agent   Dispatch AI Agent
                                    (check coverage)     (send ambulance)
                                           │                   │
                                           └─────────┬─────────┘
@@ -108,9 +108,9 @@ User (Telegram) → Bot → Dummy LLM (analyze) → Orchestrator (coordinate)
 |---|---|
 | **Telegram Bot** | Long-polls the Telegram API for messages, sends them through the pipeline, returns formatted responses |
 | **Dummy LLM** | Pattern-based intent detection (no real AI). Classifies messages as emergency_ambulance, emergency_helicopter, coverage_inquiry, or greeting. Extracts entities: location, activity, transport type, severity |
-| **Orchestrator** | Routes requests to the correct agents based on intent. For emergencies: calls Insurance Agent first, then Dispatch Agent, then merges results. For greetings: responds directly |
-| **Insurance Agent** | Checks mock policy rules. Ambulance is covered (10% copay, €50k limit). Helicopter is NOT covered on standard plan (suggests upgrade). Activity and location coverage checks included |
-| **Dispatch Agent** | Simulates emergency dispatch. Selects nearest hospital from a mock database. Generates ETA, unit callsign, dispatch ID. Pre-alerts the hospital. Falls back to ambulance if helicopter isn't covered |
+| **Orchestrator** | Routes requests to the correct agents based on intent. For emergencies: calls Insurance AI Agent first, then Dispatch AI Agent, then merges results. For greetings: responds directly |
+| **Insurance AI Agent** | Checks mock policy rules. Ambulance is covered (10% copay, €50k limit). Helicopter is NOT covered on standard plan (suggests upgrade). Activity and location coverage checks included |
+| **Dispatch AI Agent** | Simulates emergency dispatch. Selects nearest hospital from a mock database. Generates ETA, unit callsign, dispatch ID. Pre-alerts the hospital. Falls back to ambulance if helicopter isn't covered |
 
 ---
 
@@ -249,10 +249,10 @@ pip install flask requests
 # Terminal 1: Dummy LLM
 PORT=8001 python services/dummy-llm/app.py
 
-# Terminal 2: Insurance Agent
+# Terminal 2: Insurance AI Agent
 PORT=8003 python services/insurance-agent/app.py
 
-# Terminal 3: Dispatch Agent
+# Terminal 3: Dispatch AI Agent
 PORT=8004 python services/dispatch-agent/app.py
 
 # Terminal 4: Orchestrator
@@ -349,8 +349,8 @@ kubectl -n bootc-insurance-ai get services
 # Check all services are running
 curl http://localhost:8001/health   # Dummy LLM
 curl http://localhost:8002/health   # Orchestrator
-curl http://localhost:8003/health   # Insurance Agent
-curl http://localhost:8004/health   # Dispatch Agent
+curl http://localhost:8003/health   # Insurance AI Agent
+curl http://localhost:8004/health   # Dispatch AI Agent
 ```
 
 ### Test 2: Ambulance Request (Covered)
@@ -483,8 +483,8 @@ All communication is via **HTTP REST calls** over the internal container network
 ```
 Telegram Bot  ──POST /analyze──▶  Dummy LLM (:8001)
 Telegram Bot  ──POST /process──▶  Orchestrator (:8002)
-Orchestrator  ──POST /check────▶  Insurance Agent (:8003)
-Orchestrator  ──POST /dispatch─▶  Dispatch Agent (:8004)
+Orchestrator  ──POST /check────▶  Insurance AI Agent (:8003)
+Orchestrator  ──POST /dispatch─▶  Dispatch AI Agent (:8004)
 ```
 
 | Endpoint | Method | Service | Description |
@@ -492,8 +492,8 @@ Orchestrator  ──POST /dispatch─▶  Dispatch Agent (:8004)
 | `/health` | GET | All services | Health check |
 | `/analyze` | POST | Dummy LLM | Analyze message text, return intent + entities |
 | `/process` | POST | Orchestrator | Full workflow: route to agents, build response |
-| `/check` | POST | Insurance Agent | Check policy coverage for given intent + entities |
-| `/dispatch` | POST | Dispatch Agent | Dispatch emergency transport |
+| `/check` | POST | Insurance AI Agent | Check policy coverage for given intent + entities |
+| `/dispatch` | POST | Dispatch AI Agent | Dispatch emergency transport |
 
 ---
 
