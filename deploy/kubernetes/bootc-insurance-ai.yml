@@ -224,9 +224,9 @@ spec:
           env:
             - name: PORT
               value: "8002"
-            - name: INSURANCE_AGENT_URL
+            - name: INSURANCE_AI_AGENT_URL
               value: "http://insurance-agent:8003"
-            - name: DISPATCH_AGENT_URL
+            - name: DISPATCH_AI_AGENT_URL
               value: "http://dispatch-agent:8004"
             - name: LOG_LEVEL
               valueFrom:

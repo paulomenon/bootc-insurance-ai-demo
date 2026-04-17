@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 import requests
 from flask import Flask, request, jsonify
-from shared.config import INSURANCE_AGENT_URL, DISPATCH_AGENT_URL
+from shared.config import INSURANCE_AI_AGENT_URL, DISPATCH_AI_AGENT_URL
 from shared.logger import get_logger
 
 app = Flask(__name__)
@@ -26,7 +26,7 @@ GREETING_RESPONSES = {
 def call_insurance_agent(intent: str, entities: dict) -> dict:
     try:
         resp = requests.post(
-            f"{INSURANCE_AGENT_URL}/check",
+            f"{INSURANCE_AI_AGENT_URL}/check",
             json={"intent": intent, "entities": entities},
             timeout=10,
         )
@@ -40,7 +40,7 @@ def call_insurance_agent(intent: str, entities: dict) -> dict:
 def call_dispatch_agent(intent: str, entities: dict, insurance_decision: dict) -> dict:
     try:
         resp = requests.post(
-            f"{DISPATCH_AGENT_URL}/dispatch",
+            f"{DISPATCH_AI_AGENT_URL}/dispatch",
             json={
                 "intent": intent,
                 "entities": entities,

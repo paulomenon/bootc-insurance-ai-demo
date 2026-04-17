@@ -151,8 +151,8 @@ You need a Telegram bot token from **BotFather**:
 | `TELEGRAM_BOT_TOKEN` | Yes | — | Token from BotFather |
 | `LLM_SERVICE_URL` | No | `http://localhost:8001` | Dummy LLM service URL |
 | `AGENTIC_AI_URL` | No | `http://localhost:8002` | Agentic AI service URL |
-| `INSURANCE_AGENT_URL` | No | `http://localhost:8003` | Insurance agent URL |
-| `DISPATCH_AGENT_URL` | No | `http://localhost:8004` | Dispatch agent URL |
+| `INSURANCE_AI_AGENT_URL` | No | `http://localhost:8003` | Insurance AI Agent URL |
+| `DISPATCH_AI_AGENT_URL` | No | `http://localhost:8004` | Dispatch AI Agent URL |
 | `LOG_LEVEL` | No | `INFO` | Logging level |
 
 ---
@@ -179,13 +179,13 @@ bootc-insurance-ai-demo/
 │   ├── dummy-llm/             # Intent detection + entity extraction
 │   │   ├── app.py
 │   │   └── requirements.txt
-│   ├── orchestrator/          # Agentic AI — coordinates agents + builds responses
+│   ├── agentic-ai/            # Agentic AI — coordinates agents + builds responses
 │   │   ├── app.py
 │   │   └── requirements.txt
-│   ├── insurance-agent/       # Policy coverage checks
+│   ├── insurance-ai-agent/    # Insurance AI Agent — policy coverage checks
 │   │   ├── app.py
 │   │   └── requirements.txt
-│   └── dispatch-agent/        # Emergency dispatch simulation
+│   └── dispatch-ai-agent/     # Dispatch AI Agent — emergency dispatch simulation
 │       ├── app.py
 │       └── requirements.txt
 │
@@ -250,13 +250,13 @@ pip install flask requests
 PORT=8001 python services/dummy-llm/app.py
 
 # Terminal 2: Insurance AI Agent
-PORT=8003 python services/insurance-agent/app.py
+PORT=8003 python services/insurance-ai-agent/app.py
 
 # Terminal 3: Dispatch AI Agent
-PORT=8004 python services/dispatch-agent/app.py
+PORT=8004 python services/dispatch-ai-agent/app.py
 
 # Terminal 4: Agentic AI
-PORT=8002 INSURANCE_AGENT_URL=http://localhost:8003 DISPATCH_AGENT_URL=http://localhost:8004 python services/orchestrator/app.py  # Agentic AI
+PORT=8002 INSURANCE_AI_AGENT_URL=http://localhost:8003 DISPATCH_AI_AGENT_URL=http://localhost:8004 python services/agentic-ai/app.py
 
 # Terminal 5: Telegram Bot
 TELEGRAM_BOT_TOKEN=your-token LLM_SERVICE_URL=http://localhost:8001 AGENTIC_AI_URL=http://localhost:8002 python services/telegram-bot/app.py
@@ -306,15 +306,15 @@ podman build -t bootc-insurance-ai/dummy-llm:latest \
   -f Containerfile.service .
 
 podman build -t bootc-insurance-ai/insurance-agent:latest \
-  --build-arg SERVICE_NAME=insurance-agent --build-arg SERVICE_PORT=8003 \
+  --build-arg SERVICE_NAME=insurance-ai-agent --build-arg SERVICE_PORT=8003 \
   -f Containerfile.service .
 
 podman build -t bootc-insurance-ai/dispatch-agent:latest \
-  --build-arg SERVICE_NAME=dispatch-agent --build-arg SERVICE_PORT=8004 \
+  --build-arg SERVICE_NAME=dispatch-ai-agent --build-arg SERVICE_PORT=8004 \
   -f Containerfile.service .
 
 podman build -t bootc-insurance-ai/agentic-ai:latest \
-  --build-arg SERVICE_NAME=orchestrator --build-arg SERVICE_PORT=8002 \
+  --build-arg SERVICE_NAME=agentic-ai --build-arg SERVICE_PORT=8002 \
   -f Containerfile.service .
 
 podman build -t bootc-insurance-ai/telegram-bot:latest \
