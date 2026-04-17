@@ -59,7 +59,7 @@ def analyze_message(text: str) -> dict:
 
 
 def process_with_orchestrator(llm_result: dict) -> dict:
-    """Send the LLM analysis to the orchestrator for agent coordination."""
+    """Send the LLM analysis to the Agentic AI for agent coordination."""
     try:
         resp = requests.post(
             f"{ORCHESTRATOR_URL}/process",
@@ -69,7 +69,7 @@ def process_with_orchestrator(llm_result: dict) -> dict:
         resp.raise_for_status()
         return resp.json()
     except requests.RequestException as e:
-        log.error(f"Orchestrator call failed: {e}")
+        log.error(f"Agentic AI call failed: {e}")
         return {
             "success": False,
             "message": "⚠️ System is temporarily unavailable. Please try again or call local emergency services.",
@@ -107,7 +107,7 @@ def main():
 
     log.info("Telegram bot starting (long polling mode)...")
     log.info(f"LLM Service: {LLM_SERVICE_URL}")
-    log.info(f"Orchestrator: {ORCHESTRATOR_URL}")
+    log.info(f"Agentic AI: {ORCHESTRATOR_URL}")
 
     offset = 0
     while True:

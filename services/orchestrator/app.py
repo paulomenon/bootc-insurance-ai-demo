@@ -9,7 +9,7 @@ from shared.config import INSURANCE_AGENT_URL, DISPATCH_AGENT_URL
 from shared.logger import get_logger
 
 app = Flask(__name__)
-log = get_logger("orchestrator")
+log = get_logger("agentic-ai")
 
 GREETING_RESPONSES = {
     "greeting": (
@@ -115,7 +115,7 @@ def format_coverage_only(insurance: dict) -> str:
 
 @app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "healthy", "service": "orchestrator"})
+    return jsonify({"status": "healthy", "service": "agentic-ai"})
 
 
 @app.route("/process", methods=["POST"])
@@ -159,5 +159,5 @@ def process():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8002))
-    log.info(f"Agent Orchestrator starting on port {port}")
+    log.info(f"Agentic AI starting on port {port}")
     app.run(host="0.0.0.0", port=port)
